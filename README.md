@@ -1,2 +1,2 @@
-# submaximal_feedback
+# maximal isometric
 maxmial and submaxmial force task
