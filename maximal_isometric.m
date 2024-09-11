@@ -6,8 +6,10 @@
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+clear;
+
 maximal_force = MVIC_squat();
-%maximal_force = 10;
+% maximal_force = 1000;
 [option, err] = InputGUI_mi();
 
 if ~isempty(err)

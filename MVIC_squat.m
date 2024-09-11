@@ -1,5 +1,7 @@
 function maximal_force = MVIC_squat()
-    Name = 'S01';
+    UserInfo = input_UserInfo();
+
+    UserNumber = UserInfo.UserNumber;
     % Connect to QTM
     ip = '127.0.0.1';
     % Connects to QTM and keeps the connection alive.
@@ -7,7 +9,7 @@ function maximal_force = MVIC_squat()
 
     rate = 100;
     during_time = 5;
-    trial = 2;
+    trial = 3;
     time = linspace(0, during_time, during_time*rate + 10);
     
     fig = figure(1);
@@ -18,7 +20,9 @@ function maximal_force = MVIC_squat()
     realtime_data = plot(NaN, NaN, 'black', 'LineWidth', 1.5);
     plot([0, during_time], [0, 0], 'black--')
     
-    force_data = NaN(1, length(time));
+    right_vgrfs = NaN(trial, length(time));
+    left_vgrfs = NaN(trial, length(time));
+    force_data = NaN(trial, length(time));
     for t=1:trial
         % Add text for countdown timer
         y_pos = 0.8 * max(ylim);
@@ -49,7 +53,9 @@ function maximal_force = MVIC_squat()
                 left_vgrf = force{2, 2}(1, 3);
                 % sum both foot
                 vgrf = right_vgrf + left_vgrf;
-            
+                
+                right_vgrfs(i) = right_vgrf;
+                left_vgrfs(i) = left_vgrf;
                 force_data(t, i) = vgrf;
                 set(realtime_data, 'XData', time(1:i), 'YData', force_data(t, 1:i));
                 
@@ -77,13 +83,35 @@ function maximal_force = MVIC_squat()
     % calculate maximal force for each trial
     maximal_force_per_trial = max(force_data, [], 2);
     % calculate total maximal force 
-    maximal_force = max(maximal_force_per_trial);
+    maximal_force = average(maximal_force_per_trial);
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % save result data at folder named today
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    dir_name = sprintf('%s', Name);
-    mkdir(sprintf('submaximal_feedback/%s',dir_name));
-    file_name = sprintf('submaximal_feedback/%s/mvic_squat.mat', dir_name);
-    save(file_name, "force_data");
+    dir_name = sprintf('%s', UserNumber);
+    mkdir(sprintf('maximal_isometric/%s',dir_name));
+    
+    right_xlsx_file_name = sprintf('maximal_isometric/%s/mvic_squat_right.xlsx', dir_name);
+    writematrix(transpose(right_vgrfs), right_xlsx_file_name);
+    left_xlsx_file_name = sprintf('maximal_isometric/%s/mvic_squat_left.xlsx', dir_name);
+    writematrix(transpose(left_vgrfs), left_xlsx_file_name);
+    sum_xlsx_file_name = sprintf('maximal_isometric/%s/mvic_squat_sum.xlsx', dir_name);
+    writematrix(transpose(force_data), sum_xlsx_file_name)
+%{
+    right_mat_file_name = replace(right_xlsx_file_name, ".xlsx", ".mat");
+    save_file(right_mat_file_name, dir_name, true, true, "right_vgrfs");
+    left_mat_file_name = replace(left_xlsx_file_name, ".xlsx", ".mat");
+    save_file(left_mat_file_name, dir_name, true, true, "left_vgrfs");
+    sum_mat_file_name = replace(sum_xlsx_file_name, ".xlsx", ".mat");
+    save_file(sum_mat_file_name, dir_name, true, true, "force_data");
 end
+
+function save_file(data, dir, xlsx, mat, variable_name)
+    if xlsx
+        writematrix(transpose(data), dir);
+    end
+    if mat
+        save(dir, variable_name);
+    end
+end
+%}
