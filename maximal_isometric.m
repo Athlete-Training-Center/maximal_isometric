@@ -9,8 +9,10 @@
 clear;
 
 maximal_force = MVIC_squat();
-% maximal_force = 1000;
-[option, err] = InputGUI_mi();
+%maximal_force = 2869.4;
+[option, bodyweight, err] = InputGUI_mi();
+
+net_force = maximal_force - str2double(bodyweight);
 
 if ~isempty(err)
     maximal_force = '';
@@ -20,13 +22,13 @@ end
 
 option = str2double(option);
 
-target_force = maximal_force * option/100;
+target_force = net_force * option/100;
 
-rate = 100;
-during_time = 20;
+rate = 140;
+during_time = 23;
 prior_time = 3;
 total_time = during_time + prior_time;
-time = linspace(0, total_time, total_time*rate + 10);
+time = linspace(0, total_time, total_time*rate);
 
 threshold = [target_force * 0.9, target_force * 1.1];
 
@@ -40,7 +42,7 @@ hold on
 set(gcf, 'Units', 'Normalized', 'OuterPosition', [0, 0.04, 1, 0.96]);
 
 xlim([0, total_time]);
-ylim([0, target_force * 2]);
+ylim([-20, net_force]);
 
 title('Force Measurement')
 
@@ -58,26 +60,49 @@ realtime_data = plot(NaN, NaN, 'black', 'LineWidth', 1.5);
 YData = NaN(1, length(time));
 i=1;
 while ishandle(fig)
-    tStart = toc;
-    event = QCM('event');
-    [frameinfo, force] = QCM;
+    w = waitforbuttonpress;
+    try
+        tStart = tic;
+        while true
+            event = QCM('event');
+            [frameinfo, force] = QCM;
+            try
+                a = force{2,1}(1,7);
+            catch exception
+                continue
+            end
+            % 1:right, 2:left
+            right_vgrf = force{2, 1}(1, 3);
+            left_vgrf = force{2, 2}(1, 3);
+            vgrf = right_vgrf + left_vgrf;
+            
+            YData(i) = vgrf - str2double(bodyweight);
+            set(realtime_data, 'XData', time(1:i), 'YData', YData(1:i));
+            
+            drawnow;
+            i = i+1;
     
-    % 1:right, 2:left
-    right_vgrf = force{2, 1}(1, 3);
-    left_vgrf = force{2, 2}(1, 3);
-    vgrf = right_vgrf + left_vgrf;
-    
-    YData(i) = vgrf;
-    set(realtime_data, 'XData', time(1:i), 'YData', YData(1:i));
-    
-    drawnow;
-    i = i+1;
+            if toc(tStart) >= during_time
+                break;
+            end
+        end
+    delete(fig)
+    catch exception
+        disp(exception.message)
+        break
+    end
 end
 
-delete(fig);
+% delete(fig);
 
 % remove prior_time data
 force_data = YData(rate*3+1:end);
 
 % remove redundancy data
 force_data = force_data(:, 1:during_time*rate);
+
+%{
+qtm_force = qtm_50_c20015.Force.Force;
+z_qtm = qtm_force(3,:);
+max_z_qtm = max(z_qtm);
+%}

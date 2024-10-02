@@ -1,4 +1,4 @@
-function maximal_force = MVIC_squat()
+function mean_force = MVIC_squat()
     UserInfo = input_UserInfo();
 
     UserNumber = UserInfo.UserNumber;
@@ -7,10 +7,10 @@ function maximal_force = MVIC_squat()
     % Connects to QTM and keeps the connection alive.
     QCM('connect', ip, 'frameinfo', 'force');
 
-    rate = 100;
+    rate = 150; % TODO: check this rate
     during_time = 5;
-    trial = 3;
-    time = linspace(0, during_time, during_time*rate + 10);
+    trial = 1;
+    time = linspace(0, during_time, during_time * rate);
     
     fig = figure(1);
     hold on
@@ -42,10 +42,11 @@ function maximal_force = MVIC_squat()
                 event = QCM('event');
                 % Fetch data from QTM
                 [frameinfo,force] = QCM;
-        
-                if ~ishandle(fig)
-                    QCM('disconnect');
-                    break;
+
+                try
+                    a = force{2,1}(1,7);
+                catch exception
+                    continue
                 end
                 
                 % 1:right, 2:left
@@ -83,7 +84,7 @@ function maximal_force = MVIC_squat()
     % calculate maximal force for each trial
     maximal_force_per_trial = max(force_data, [], 2);
     % calculate total maximal force 
-    maximal_force = average(maximal_force_per_trial);
+    mean_force = mean(maximal_force_per_trial);
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % save result data at folder named today
